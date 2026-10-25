@@ -1,0 +1,10 @@
+{
+  "name": "shiye-reader",
+  "version": "2.1.0",
+  "private": true,
+  "description": "拾页 · 能读电子书的阅读档案，支持双语对照与查词",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}

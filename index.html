@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f1eb">
+  <meta name="description" content="拾页，一本能读书的阅读档案。导入 EPUB / TXT，在原版书页之间对照翻译，记录阅读的积累。">
+  <title>拾页 · 阅读档案</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="拾页">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="reader.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="主导航">
+      <button class="brand" type="button" data-view="overview" aria-label="回到概览">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.5 6.2c2.7-.9 5.2-.4 7.5 1.3v11c-2.3-1.7-4.8-2.2-7.5-1.3V6.2Z"/>
+            <path d="M19.5 6.2c-2.7-.9-5.2-.4-7.5 1.3v11c2.3-1.7 4.8-2.2 7.5-1.3V6.2Z"/>
+            <path d="M8 9.4c.8-.1 1.5 0 2.2.3M8 12.2c.8-.1 1.5 0 2.2.3"/>
+          </svg>
+        </span>
+        <span class="brand-copy">
+          <strong>拾页</strong>
+          <small>SHIYE · READING</small>
+        </span>
+      </button>
+
+      <nav class="side-nav">
+        <p class="nav-label">阅读空间</p>
+        <button class="nav-item is-active" type="button" data-view="overview" aria-current="page">
+          <span class="nav-icon" data-icon="grid" aria-hidden="true"></span>
+          <span>概览</span>
+        </button>
+        <button class="nav-item" type="button" data-view="shelf">
+          <span class="nav-icon" data-icon="books" aria-hidden="true"></span>
+          <span>我的书架</span>
+        </button>
+        <button class="nav-item" type="button" data-view="categories">
+          <span class="nav-icon" data-icon="layers" aria-hidden="true"></span>
+          <span>分类书架</span>
+        </button>
+        <button class="nav-item" type="button" data-view="translate">
+          <span class="nav-icon" data-icon="languages" aria-hidden="true"></span>
+          <span>译读</span>
+        </button>
+        <button class="nav-item" type="button" data-view="achievements">
+          <span class="nav-icon" data-icon="trophy" aria-hidden="true"></span>
+          <span>阅读成就</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-spacer"></div>
+
+      <section class="side-goal" aria-label="年度目标进度">
+        <div class="side-goal-ring" id="side-goal-ring" aria-hidden="true"></div>
+        <div class="side-goal-copy">
+          <span>年度阅读目标</span>
+          <strong id="side-goal-label">0 / 24 本</strong>
+        </div>
+        <button class="mini-icon-button" type="button" data-action="edit-goal" aria-label="调整年度目标">
+          <span data-icon="sliders" aria-hidden="true"></span>
+        </button>
+      </section>
+
+      <div class="profile">
+        <span class="avatar" id="profile-avatar" aria-hidden="true">读</span>
+        <div class="profile-copy">
+          <strong id="profile-name">读者</strong>
+          <span id="profile-note">阅读刚刚开始</span>
+        </div>
+        <button class="mini-icon-button" type="button" data-action="open-settings" aria-label="打开设置">
+          <span data-icon="more" aria-hidden="true"></span>
+        </button>
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <header class="mobile-bar">
+        <button class="brand brand--mobile" type="button" data-view="overview" aria-label="回到概览">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4.5 6.2c2.7-.9 5.2-.4 7.5 1.3v11c-2.3-1.7-4.8-2.2-7.5-1.3V6.2Z"/>
+              <path d="M19.5 6.2c-2.7-.9-5.2-.4-7.5 1.3v11c2.3-1.7 4.8-2.2 7.5-1.3V6.2Z"/>
+            </svg>
+          </span>
+          <span class="brand-copy"><strong>拾页</strong><small>SHIYE</small></span>
+        </button>
+        <button class="mobile-add" type="button" data-action="add-book" aria-label="添加书籍">
+          <span data-icon="plus" aria-hidden="true"></span>
+        </button>
+      </header>
+
+      <main class="content" id="main-content">
+        <section class="view is-active" data-view-panel="overview" aria-labelledby="overview-title">
+          <header class="page-header page-header--overview">
+            <div class="page-title-block">
+              <p class="eyebrow" id="today-label">READING DAY</p>
+              <h1 class="page-title" id="overview-title">
+                <span id="greeting-text">下午好，读者</span><span class="title-dot" aria-hidden="true"></span>
+              </h1>
+              <p class="page-lede">每翻一页，都是与另一个世界的一次照面。</p>
+            </div>
+            <div class="page-actions">
+              <button class="icon-button page-search-button" type="button" data-action="search-shelf" aria-label="搜索书架">
+                <span data-icon="search" aria-hidden="true"></span>
+              </button>
+              <button class="button button--primary" type="button" data-action="add-book">
+                <span data-icon="plus" aria-hidden="true"></span>
+                添加书籍
+              </button>
+            </div>
+          </header>
+
+          <div class="bento">
+            <article class="goal-card" id="goal-card" aria-label="年度阅读目标"></article>
+            <div class="bento-side">
+              <article class="side-card streak-card" id="streak-card"></article>
+              <article class="side-card milestone-card" id="milestone-card"></article>
+            </div>
+          </div>
+
+          <section class="stats-panel" id="stats-panel" aria-label="阅读统计"></section>
+
+          <div class="overview-columns overview-columns--main">
+            <article class="panel reading-panel" id="reading-panel"></article>
+            <article class="panel heatmap-panel" id="heatmap-panel"></article>
+          </div>
+
+          <div class="overview-columns overview-columns--secondary">
+            <article class="panel category-summary" id="category-summary"></article>
+            <article class="panel achievement-summary" id="achievement-summary"></article>
+          </div>
+        </section>
+
+        <section class="view" data-view-panel="shelf" aria-labelledby="shelf-title">
+          <header class="page-header">
+            <div class="page-title-block">
+              <p class="eyebrow">YOUR LIBRARY</p>
+              <h1 class="page-title" id="shelf-title">我的书架<span class="title-dot" aria-hidden="true"></span></h1>
+              <p class="page-lede" id="shelf-subtitle">正在整理你的书。</p>
+            </div>
+            <div class="page-actions">
+              <button class="button button--secondary" type="button" data-action="import-ebook" title="支持 EPUB / TXT">
+                <span data-icon="upload" aria-hidden="true"></span>
+                导入电子书
+              </button>
+              <button class="button button--primary" type="button" data-action="add-book">
+                <span data-icon="plus" aria-hidden="true"></span>
+                添加书籍
+              </button>
+            </div>
+          </header>
+
+          <div class="shelf-toolbar">
+            <div class="segmented" id="status-tabs" role="group" aria-label="按阅读状态筛选">
+              <button class="is-active" type="button" data-status="all" aria-pressed="true">全部 <span id="count-all">0</span></button>
+              <button type="button" data-status="reading" aria-pressed="false">在读 <span id="count-reading">0</span></button>
+              <button type="button" data-status="read" aria-pressed="false">已读 <span id="count-read">0</span></button>
+              <button type="button" data-status="want" aria-pressed="false">想读 <span id="count-want">0</span></button>
+            </div>
+            <div class="shelf-tools">
+              <label class="search-box">
+                <span class="search-icon" data-icon="search" aria-hidden="true"></span>
+                <input id="shelf-search" type="search" placeholder="搜索书名或作者" autocomplete="off" aria-label="搜索书名或作者">
+                <kbd>/</kbd>
+              </label>
+              <label class="sort-box">
+                <span class="sr-only">排序方式</span>
+                <select id="shelf-sort" aria-label="排序方式">
+                  <option value="recent">最近阅读</option>
+                  <option value="progress">阅读进度</option>
+                  <option value="added">最近加入</option>
+                  <option value="title">书名排序</option>
+                </select>
+                <span class="sort-chevron" data-icon="chevron-down" aria-hidden="true"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="category-chips" id="category-chips" aria-label="按分类筛选"></div>
+
+          <div class="shelf-meta">
+            <p id="shelf-result">共 0 本</p>
+            <button class="clear-filters" id="clear-filters" type="button" data-action="clear-filters" hidden>清除筛选</button>
+          </div>
+
+          <div class="book-grid" id="book-grid"></div>
+        </section>
+
+        <section class="view" data-view-panel="categories" aria-labelledby="categories-title">
+          <header class="page-header">
+            <div class="page-title-block">
+              <p class="eyebrow">READING MAP</p>
+              <h1 class="page-title" id="categories-title">分类书架<span class="title-dot" aria-hidden="true"></span></h1>
+              <p class="page-lede">读过的书，慢慢拼成你看世界的地图。</p>
+            </div>
+            <div class="page-actions">
+              <button class="button button--secondary" type="button" data-action="add-category">
+                <span data-icon="plus" aria-hidden="true"></span>
+                新建分类
+              </button>
+            </div>
+          </header>
+
+          <div id="distribution-panel"></div>
+
+          <div class="section-heading section-heading--tight">
+            <div>
+              <h2>所有分类</h2>
+              <p>选择一个方向，看看那里有什么。</p>
+            </div>
+          </div>
+          <div class="category-grid" id="category-grid"></div>
+        </section>
+
+        <section class="view" data-view-panel="translate" aria-labelledby="translate-title">
+          <header class="page-header">
+            <div class="page-title-block">
+              <p class="eyebrow">BILINGUAL READING</p>
+              <h1 class="page-title" id="translate-title">译读<span class="title-dot" aria-hidden="true"></span></h1>
+              <p class="page-lede">面对还没有中文版的书，也能保留原文，一段一段读下去。</p>
+            </div>
+          </header>
+
+          <div class="translation-layout">
+            <article class="translate-workbench" id="translate-workbench" aria-label="对照翻译工作台"></article>
+            <aside class="dictionary-pane" id="dictionary-pane" aria-label="英文查词"></aside>
+          </div>
+
+          <p class="translation-footnote">
+            <span data-icon="info" aria-hidden="true"></span>
+            原文与译文草稿保存在本机；翻译时原文会发送至在线翻译服务。查词释义来自 Free Dictionary API / Wiktionary。机器翻译可能有误，重要内容请结合原文判断。
+          </p>
+        </section>
+
+        <section class="view" data-view-panel="achievements" aria-labelledby="achievements-title">
+          <header class="page-header">
+            <div class="page-title-block">
+              <p class="eyebrow">MILESTONES</p>
+              <h1 class="page-title" id="achievements-title">阅读成就<span class="title-dot" aria-hidden="true"></span></h1>
+              <p class="page-lede">不是为了炫耀，只是让每一次坚持都有回声。</p>
+            </div>
+          </header>
+
+          <div id="level-card"></div>
+
+          <div class="section-heading section-heading--tight">
+            <div>
+              <h2>徽章墙</h2>
+              <p id="badge-summary">已点亮 0 枚阅读徽章。</p>
+            </div>
+          </div>
+          <div class="achievement-grid" id="achievement-grid"></div>
+
+          <div id="chart-panel"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <nav class="mobile-nav" aria-label="移动端主导航">
+    <button class="mobile-nav-item is-active" type="button" data-view="overview" aria-current="page">
+      <span data-icon="grid" aria-hidden="true"></span>
+      <span>概览</span>
+    </button>
+    <button class="mobile-nav-item" type="button" data-view="shelf">
+      <span data-icon="books" aria-hidden="true"></span>
+      <span>书架</span>
+    </button>
+    <button class="mobile-nav-item" type="button" data-view="categories">
+      <span data-icon="layers" aria-hidden="true"></span>
+      <span>分类</span>
+    </button>
+    <button class="mobile-nav-item" type="button" data-view="translate">
+      <span data-icon="languages" aria-hidden="true"></span>
+      <span>译读</span>
+    </button>
+    <button class="mobile-nav-item" type="button" data-view="achievements">
+      <span data-icon="trophy" aria-hidden="true"></span>
+      <span>成就</span>
+    </button>
+  </nav>
+
+  <div class="selection-tool" id="selection-tool" hidden>
+    <span class="selection-tool-word"></span>
+    <button type="button" data-action="lookup-selection">查词</button>
+  </div>
+
+  <div class="reader-root" id="reader-root"></div>
+  <input class="sr-only" id="ebook-file-input" type="file" accept=".epub,.txt,.md,.markdown,application/epub+zip,text/plain,text/markdown" aria-label="选择要导入的电子书文件">
+
+  <div class="toast-region" id="toast-region" role="status" aria-live="polite" aria-atomic="false"></div>
+  <div class="overlay-root" id="overlay-root"></div>
+
+  <script src="vendor/jszip.min.js" defer></script>
+  <script src="app.js" defer></script>
+  <script src="reader.js" defer></script>
+</body>
+</html>

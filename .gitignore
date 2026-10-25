@@ -1,0 +1,11 @@
+node_modules/
+.server.log
+.server-error.log
+.server*.log
+.import-status.json
+inbox/
+tools/
+_shiye-dev/
+Thumbs.db
+.DS_Store
+*.lnk

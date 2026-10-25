@@ -1,0 +1,25 @@
+{
+  "name": "拾页 · 阅读档案",
+  "short_name": "拾页",
+  "description": "能读 EPUB 与 TXT 的阅读器，支持双语对照、查词与阅读档案。",
+  "lang": "zh-CN",
+  "start_url": "/#shelf",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3f1eb",
+  "theme_color": "#f3f1eb",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
