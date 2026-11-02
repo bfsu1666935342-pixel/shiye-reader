@@ -931,7 +931,7 @@
           <div class="reader-doc" id="reader-doc"></div>
         </main>
         <button class="reader-note-return" id="reader-note-return" type="button" data-reader-action="return-note" hidden>
-          ${icon("arrow-left")}<span>返回原文</span>
+          ${icon("arrow-left")}<span class="reader-note-return-label">返回原文</span>
         </button>
         <footer class="reader-statusbar" id="reader-statusbar">
           <div class="reader-status-left">
@@ -2229,7 +2229,7 @@
   function updateNoteReturnUI() {
     if (!ui.noteReturnButton) return;
     ui.noteReturnButton.hidden = !state.noteReturn;
-    const label = ui.noteReturnButton.querySelector("span");
+    const label = ui.noteReturnButton.querySelector(".reader-note-return-label");
     if (label) label.textContent = state.noteReturn?.label || "返回原文";
   }
 

@@ -1602,6 +1602,11 @@ body.reader-open {
 .reader-note-return svg {
   width: 14px;
   height: 14px;
+  flex: none;
+}
+
+.reader-note-return-label {
+  white-space: nowrap;
 }
 
 /* ---------- Left table of contents / search ---------- */
