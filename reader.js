@@ -19,6 +19,8 @@
   const MAX_FILE_BYTES = 42 * 1024 * 1024;
   const MAX_IMPORT_CHAPTERS = 1200;
   const MAX_LINKED_CHAPTERS = 80;
+  const SESSION_FLUSH_MS = 30 * 1000;
+  const SESSION_IDLE_MS = 10 * 60 * 1000;
   const TRANSLATION_BATCH_SIZE = 8;
   const COVER_THEMES = ["forest", "clay", "ink", "sand", "sky", "plum"];
   const CHAPTER_MARKER_RE = /^(?:第[0-9〇零一二三四五六七八九十百千万两]+[章回节卷部篇集](?:[\s：:、.．-].*)?|(?:chapter|part|book)\s+(?:[0-9ivxlc]+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)(?:[\s：:.-].*)?)$/i;
@@ -900,9 +902,12 @@
     sessionActiveMs: 0,
     sessionTick: 0,
     sessionRunning: false,
+    sessionLastActivity: 0,
+    sessionIdle: false,
   };
 
   let ui = {};
+  let sessionTimer = 0;
 
   function ensureShell() {
     if (state.layer) return;
@@ -1419,8 +1424,11 @@
 
   function startReadingSession() {
     state.sessionActiveMs = 0;
+    state.sessionIdle = false;
+    state.sessionLastActivity = Date.now();
     state.sessionTick = document.visibilityState === "visible" ? Date.now() : 0;
     state.sessionRunning = Boolean(state.sessionTick);
+    if (!sessionTimer) sessionTimer = window.setInterval(tickReadingSession, SESSION_FLUSH_MS);
   }
 
   function pauseReadingSession() {
@@ -1431,24 +1439,56 @@
   }
 
   function resumeReadingSession() {
-    if (!state.isOpen || state.sessionRunning) return;
+    if (!state.isOpen || state.sessionRunning || document.visibilityState !== "visible") return;
+    state.sessionLastActivity = Date.now();
+    state.sessionIdle = false;
     state.sessionTick = Date.now();
     state.sessionRunning = true;
   }
 
-  function flushReadingSession() {
-    pauseReadingSession();
+  function markReadingActivity() {
+    if (!state.isOpen) return;
+    state.sessionLastActivity = Date.now();
+    if (!state.sessionRunning && document.visibilityState === "visible") {
+      state.sessionIdle = false;
+      state.sessionTick = Date.now();
+      state.sessionRunning = true;
+    }
+  }
+
+  function tickReadingSession() {
+    if (!state.isOpen || document.visibilityState !== "visible" || !state.sessionRunning) return;
+    if (Date.now() - state.sessionLastActivity >= SESSION_IDLE_MS) {
+      pauseReadingSession();
+      state.sessionIdle = true;
+      flushReadingSession();
+      return;
+    }
+    flushReadingSession();
+  }
+
+  function flushReadingSession({ reset = false } = {}) {
+    if (state.sessionRunning) {
+      state.sessionActiveMs += Math.max(0, Date.now() - state.sessionTick);
+      state.sessionTick = Date.now();
+    }
     const minutes = Math.min(360, Math.floor(state.sessionActiveMs / 60000));
     if (minutes >= 1 && state.activeBookId) {
+      state.sessionActiveMs -= minutes * 60000;
       app.recordReadingMinutes(minutes);
     }
-    state.sessionActiveMs = 0;
+    if (reset) {
+      state.sessionRunning = false;
+      state.sessionTick = 0;
+      state.sessionActiveMs = 0;
+      state.sessionIdle = false;
+    }
   }
 
   function closeReader({ save = true, refresh = true } = {}) {
     if (!state.isOpen) return;
     if (save) persistPosition();
-    flushReadingSession();
+    flushReadingSession({ reset: true });
     state.isOpen = false;
     state.loadingToken += 1;
     state.translationToken += 1;
@@ -1472,6 +1512,10 @@
 
   function forceCloseReader() {
     if (!state.isOpen) return;
+    state.sessionRunning = false;
+    state.sessionTick = 0;
+    state.sessionActiveMs = 0;
+    state.sessionIdle = false;
     state.isOpen = false;
     state.pageRenderToken += 1;
     resolvePageWaiters();
@@ -3066,14 +3110,23 @@
     window.addEventListener("scroll", hideReaderSelectionTool, true);
     document.addEventListener("visibilitychange", () => {
       if (!state.isOpen) return;
-      if (document.visibilityState === "hidden") pauseReadingSession();
-      else resumeReadingSession();
+      if (document.visibilityState === "hidden") {
+        pauseReadingSession();
+        flushReadingSession();
+      } else {
+        resumeReadingSession();
+      }
     });
+    ["pointerdown", "touchstart", "wheel", "keydown"].forEach((eventName) => {
+      document.addEventListener(eventName, markReadingActivity, { capture: true, passive: true });
+    });
+    document.addEventListener("scroll", markReadingActivity, { capture: true, passive: true });
   }
 
   function persistReaderOnPageHide() {
     if (!state.isOpen) return;
     persistPosition();
+    pauseReadingSession();
     flushReadingSession();
   }
 

@@ -49,13 +49,20 @@
     { color: "#8f5f58", soft: "#f3e6e3" },
   ];
 
-  const LEVELS = [
-    { name: "初读者", min: 0 },
-    { name: "书页旅人", min: 5 },
-    { name: "藏书家", min: 10 },
-    { name: "阅读家", min: 20 },
-    { name: "书房主人", min: 40 },
+  const READING_RANKS = [
+    { name: "初见", hours: 0 },
+    { name: "展卷", hours: 2 },
+    { name: "入页", hours: 8 },
+    { name: "寻章", hours: 20 },
+    { name: "沉读", hours: 40 },
+    { name: "会意", hours: 80 },
+    { name: "通幽", hours: 150 },
+    { name: "博观", hours: 250 },
+    { name: "忘言", hours: 400 },
+    { name: "拾光", hours: 600 },
   ];
+
+  const READING_BASELINE_MAX_MINUTES = 10_000 * 60;
 
   const SOURCE_LANGUAGES = [
     { id: "en", label: "英语", short: "EN" },
@@ -174,6 +181,26 @@
 
   function formatNumber(value) {
     return NUMBER_FORMAT.format(Math.round(Number(value) || 0));
+  }
+
+  function formatDecimal(value, digits = 1) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return "0";
+    return number.toFixed(digits).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+  }
+
+  function readingHoursValue(minutes) {
+    return Math.floor(Math.max(0, Number(minutes) || 0) / 6) / 10;
+  }
+
+  function formatReadingHours(minutes) {
+    return `${formatDecimal(readingHoursValue(minutes), 1)} 小时`;
+  }
+
+  function formatReadingDuration(minutes) {
+    const safe = Math.max(0, Math.round(Number(minutes) || 0));
+    if (safe < 60) return `${safe} 分钟`;
+    return formatReadingHours(safe);
   }
 
   function clamp(value, min, max) {
@@ -355,11 +382,12 @@
 
     return {
       version: APP_VERSION,
-      profile: { name: "读者", yearlyGoal: 24 },
+      profile: { name: "读者", yearlyGoal: 24, baselineMinutes: 0 },
       categories,
       books: [],
       activity: {},
       seenAchievements: null,
+      seenRankIndex: 0,
       createdAt: new Date().toISOString(),
       demoCleanupVersion: DEMO_CLEANUP_VERSION,
     };
@@ -440,11 +468,15 @@
       profile: {
         name: String(raw.profile?.name || "读者").slice(0, 18),
         yearlyGoal: clamp(Number(raw.profile?.yearlyGoal) || 24, 1, 365),
+        baselineMinutes: clamp(Math.round(Number(raw.profile?.baselineMinutes) || 0), 0, READING_BASELINE_MAX_MINUTES),
       },
       categories,
       books,
       activity,
       seenAchievements: Array.isArray(raw.seenAchievements) ? raw.seenAchievements.filter((id) => typeof id === "string") : null,
+      seenRankIndex: raw.seenRankIndex === null || raw.seenRankIndex === undefined
+        ? null
+        : clamp(Math.round(Number(raw.seenRankIndex) || 0), 0, READING_RANKS.length - 1),
       createdAt: raw.createdAt || new Date().toISOString(),
       demoCleanupVersion: clamp(Number(raw.demoCleanupVersion) || 1, 1, DEMO_CLEANUP_VERSION),
     };
@@ -630,6 +662,14 @@
     persist();
   }
 
+  function initializeRankHistory() {
+    const currentIndex = getReadingRank().index;
+    if (!Number.isInteger(state.seenRankIndex) || state.seenRankIndex !== currentIndex) {
+      state.seenRankIndex = currentIndex;
+      persist();
+    }
+  }
+
   /* ---------- Derived reading data ---------- */
 
   function getCategoryMap() {
@@ -693,7 +733,9 @@
   }
 
   function getTotalMinutes() {
-    return Object.values(state.activity).reduce((sum, entry) => sum + (Number(entry?.minutes) || 0), 0);
+    const trackedMinutes = Object.values(state.activity).reduce((sum, entry) => sum + (Number(entry?.minutes) || 0), 0);
+    const baselineMinutes = clamp(Math.round(Number(state.profile?.baselineMinutes) || 0), 0, READING_BASELINE_MAX_MINUTES);
+    return trackedMinutes + baselineMinutes;
   }
 
   function getCurrentStreak() {
@@ -871,25 +913,51 @@
       .sort((a, b) => b.progress - a.progress)[0] || null;
   }
 
-  function getLevel() {
-    const readCount = getReadBooks().length;
+  function getReadingRank() {
+    const totalMinutes = getTotalMinutes();
     let index = 0;
-    LEVELS.forEach((level, levelIndex) => {
-      if (readCount >= level.min) index = levelIndex;
+    READING_RANKS.forEach((rank, rankIndex) => {
+      if (totalMinutes >= rank.hours * 60) index = rankIndex;
     });
-    const current = LEVELS[index];
-    const next = LEVELS[index + 1] || null;
-    const progress = next
-      ? clamp((readCount - current.min) / (next.min - current.min), 0, 1)
+    const current = READING_RANKS[index];
+    const nextRank = READING_RANKS[index + 1] || null;
+    const currentMin = current.hours * 60;
+    const nextMin = nextRank ? nextRank.hours * 60 : null;
+    const progress = nextRank
+      ? clamp((totalMinutes - currentMin) / Math.max(1, nextMin - currentMin), 0, 1)
       : 1;
     return {
       index,
+      number: index + 1,
       name: current.name,
-      readCount,
-      next,
+      minMinutes: currentMin,
+      next: nextRank ? { ...nextRank, minMinutes: nextMin } : null,
       progress,
-      remaining: next ? Math.max(0, next.min - readCount) : 0,
+      totalMinutes,
+      remainingMinutes: nextRank ? Math.max(0, nextMin - totalMinutes) : 0,
     };
+  }
+
+  function syncRankCelebration() {
+    const rank = getReadingRank();
+    const seenIndex = Number.isInteger(state.seenRankIndex) ? state.seenRankIndex : rank.index;
+    if (rank.index > seenIndex) {
+      state.seenRankIndex = rank.index;
+      persist();
+      window.setTimeout(() => {
+        showToast(`阅读段位提升 · ${rank.name}`, `累计阅读 ${formatReadingDuration(rank.totalMinutes)}，进入第 ${rank.number} 段。`, {
+          tone: "achievement",
+          icon: "trophy",
+          duration: 5200,
+        });
+      }, 480);
+      return true;
+    }
+    if (rank.index < seenIndex) {
+      state.seenRankIndex = rank.index;
+      persist();
+    }
+    return false;
   }
 
   function getCategoryStats() {
@@ -976,8 +1044,10 @@
 
     const profileNote = document.getElementById("profile-note");
     if (profileNote) {
-      const hours = Math.max(0, Math.round(getTotalMinutes() / 60));
-      profileNote.textContent = hours > 0 ? `已阅读 ${hours} 小时` : "阅读刚刚开始";
+      const totalMinutes = getTotalMinutes();
+      const rank = getReadingRank();
+      profileNote.textContent = `${rank.name} · ${formatReadingDuration(totalMinutes)}`;
+      profileNote.title = `第 ${rank.number} 段 · ${rank.name} · 累计 ${formatReadingDuration(totalMinutes)}`;
     }
 
     const shelfSubtitle = document.getElementById("shelf-subtitle");
@@ -1108,12 +1178,13 @@
     if (!panel) return;
     const count = getReadThisYear().length;
     const pages = getTotalPagesRead();
-    const hours = Math.max(0, Math.round(getTotalMinutes() / 60));
+    const totalMinutes = getTotalMinutes();
+    const rank = getReadingRank();
     const unlocked = getUnlockedAchievements().length;
     const stats = [
       { icon: "books", label: "今年已读", value: formatNumber(count), unit: "本", note: `共 ${state.books.length} 本藏书` },
       { icon: "pages", label: "累计页数", value: formatNumber(pages), unit: "页", note: "包含在读进度" },
-      { icon: "clock", label: "阅读时长", value: formatNumber(hours), unit: "小时", note: "来自每日记录" },
+      { icon: "clock", label: "累计时长", value: formatDecimal(readingHoursValue(totalMinutes), 1), unit: "小时", note: `第 ${rank.number} 段 · ${rank.name}` },
       { icon: "trophy", label: "阅读徽章", value: formatNumber(unlocked), unit: "枚", note: `共 ${getAchievements().length} 枚可点亮` },
     ];
 
@@ -1548,42 +1619,66 @@
   function renderLevelCard() {
     const target = document.getElementById("level-card");
     if (!target) return;
-    const level = getLevel();
+    const rank = getReadingRank();
     const readCount = getReadBooks().length;
     const pages = getTotalPagesRead();
     const longest = getLongestStreak();
-    const description = level.next
-      ? `再读完 ${level.remaining} 本书，进阶为「${level.next.name}」。`
-      : "你已经抵达最高段位。接下来的每一页，都是额外的礼物。";
-    const progressText = level.next
-      ? `${level.readCount} / ${level.next.min} 本`
-      : "全部达成";
-    const progressWidth = Math.round(level.progress * 100);
+    const baselineMinutes = clamp(Number(state.profile?.baselineMinutes) || 0, 0, READING_BASELINE_MAX_MINUTES);
+    const description = rank.next
+      ? `再读 ${formatReadingDuration(rank.remainingMinutes)}，进入「${rank.next.name}」。`
+      : `你已经抵达「${rank.name}」。接下来的每一小时，都是额外的旅途。`;
+    const progressText = rank.next
+      ? `${formatReadingHours(rank.totalMinutes)} / ${formatReadingHours(rank.next.minMinutes)}`
+      : "已抵达最高段位";
+    const progressWidth = Math.round(rank.progress * 100);
+    const baselineNote = baselineMinutes > 0
+      ? `其中 ${formatReadingDuration(baselineMinutes)} 来自历史补录。`
+      : "";
+    const milestoneMarkup = READING_RANKS.map((item, index) => {
+      const reached = index <= rank.index;
+      const current = index === rank.index;
+      return `<div class="rank-step${reached ? " is-reached" : ""}${current ? " is-current" : ""}"${current ? ' aria-current="step"' : ""}>
+        <span class="rank-step-index">${String(index + 1).padStart(2, "0")}</span>
+        <strong>${item.name}</strong>
+        <small>${item.hours === 0 ? "起点" : `${formatDecimal(item.hours)} 小时`}</small>
+      </div>`;
+    }).join("");
 
     target.innerHTML = `<section class="level-card">
       <div class="level-copy">
-        <p class="eyebrow">READING LEVEL · ${YEAR}</p>
+        <p class="eyebrow">READING RANK · ALL TIME</p>
         <div class="level-name-row">
-          <span class="level-name">${level.name}</span>
-          <span class="level-number">LV. ${level.index + 1}</span>
+          <span class="level-name">${rank.name}</span>
+          <span class="level-number">RANK ${String(rank.number).padStart(2, "0")} / ${READING_RANKS.length}</span>
         </div>
         <p class="level-desc">${description}</p>
         <div class="level-progress">
-          <div class="level-progress-row"><span>${level.next ? `距离下一段位` : "阅读段位"}</span><strong>${progressText}</strong></div>
+          <div class="level-progress-row"><span>${rank.next ? `距离「${rank.next.name}」` : "累计阅读"}</span><strong>${progressText}</strong></div>
           <div class="level-track"><span style="width:${progressWidth}%"></span></div>
         </div>
         <div class="level-stats">
           <span><strong>${readCount}</strong> 本已读</span>
           <span><strong>${formatNumber(pages)}</strong> 页</span>
           <span><strong>${longest}</strong> 天最长连续</span>
+          <span><strong>${formatReadingDuration(rank.totalMinutes)}</strong> 累计</span>
         </div>
       </div>
       <div class="level-medal-wrap" aria-hidden="true">
         <div class="level-medal">
           ${icon("trophy")}
-          <span class="level-medal-caption">SHIYE · READER</span>
+          <span class="level-medal-caption">SHIYE · RANK</span>
         </div>
       </div>
+    </section>
+    <section class="rank-journey" aria-label="累计阅读段位长阶">
+      <div class="rank-journey-head">
+        <div>
+          <p class="eyebrow">ALL-TIME MILESTONES</p>
+          <h2>阅读长阶</h2>
+        </div>
+        <p>时长只增不减，读过的每一小时都算数。${baselineNote}</p>
+      </div>
+      <div class="rank-steps">${milestoneMarkup}</div>
     </section>`;
   }
 
@@ -2609,6 +2704,7 @@
     state.seenAchievements = Array.from(seen);
     persist();
     renderAll();
+    syncRankCelebration();
 
     if (title) showToast(title, message, { icon: "check", duration: 3200 });
 
@@ -2874,6 +2970,7 @@
   }
 
   function openSettingsDialog() {
+    const baselineHours = formatDecimal(clamp(Number(state.profile?.baselineMinutes) || 0, 0, READING_BASELINE_MAX_MINUTES) / 60, 1);
     const body = `<form class="dialog-form" id="settings-form">
       <div class="settings-section">
         <div class="field">
@@ -2888,6 +2985,16 @@
             <input class="input" id="settings-goal" name="goal" type="number" min="1" max="365" step="1" value="${state.profile.yearlyGoal}" required inputmode="numeric">
             <span class="input-suffix">本</span>
           </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="field">
+          <label for="settings-baseline">历史累计阅读</label>
+          <div class="input-wrap">
+            <input class="input" id="settings-baseline" name="baselineHours" type="number" min="0" max="10000" step="0.5" value="${baselineHours}" inputmode="decimal">
+            <span class="input-suffix">小时</span>
+          </div>
+          <span class="field-hint">把使用拾页之前的阅读时长填在这里，会计入累计段位，但不会写入每日足迹。修改时会替换这个基数。</span>
         </div>
       </div>
       <div class="settings-section">
@@ -3174,6 +3281,7 @@
     const formData = new FormData(form);
     const name = String(formData.get("name") || "").trim();
     const goal = clamp(Number(formData.get("goal")) || 0, 1, 365);
+    const baselineHours = clamp(Number(formData.get("baselineHours")) || 0, 0, READING_BASELINE_MAX_MINUTES / 60);
     if (!name || !goal) {
       const error = document.getElementById("settings-error");
       if (error) error.textContent = "名字和目标都需要填写完整。";
@@ -3181,10 +3289,15 @@
     }
     state.profile.name = name.slice(0, 12);
     state.profile.yearlyGoal = goal;
+    state.profile.baselineMinutes = Math.round(baselineHours * 60);
     persist();
     closeOverlay();
     renderAll();
-    showToast("设置已保存", `你好，${state.profile.name}。今年读 ${goal} 本。`, { icon: "user" });
+    const rank = getReadingRank();
+    const celebrated = syncRankCelebration();
+    if (!celebrated) {
+      showToast("设置已保存", `你好，${state.profile.name}。当前第 ${rank.number} 段「${rank.name}」。`, { icon: "user" });
+    }
   }
 
   function exportData() {
@@ -3208,6 +3321,7 @@
   function resetData() {
     state = seedState();
     initializeAchievementHistory();
+    initializeRankHistory();
     ui.shelfStatus = "all";
     ui.shelfCategory = "all";
     ui.query = "";
@@ -3246,6 +3360,7 @@
     if (!value) return;
     addActivity(0, value);
     persist();
+    syncRankCelebration();
   }
 
   function markEbookFinished(bookId) {
@@ -3290,6 +3405,7 @@
     addImportedEbook,
     saveEbookReadingPosition,
     recordReadingMinutes,
+    getReadingRank,
     markEbookFinished,
     consumeReaderCleanupIds,
     translateTextBatch,
@@ -3585,6 +3701,7 @@
   function init() {
     hydrateIcons();
     initializeAchievementHistory();
+    initializeRankHistory();
     if (!location.hash || !VIEWS.includes(location.hash.slice(1))) {
       history.replaceState(null, "", "#overview");
     }
@@ -3615,6 +3732,7 @@
         if (!next) return;
         state = next;
         initializeAchievementHistory();
+        initializeRankHistory();
         renderAll();
       } catch {
         // Keep the current view if another tab wrote an incomplete state.
