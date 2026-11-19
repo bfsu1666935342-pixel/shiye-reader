@@ -1619,7 +1619,7 @@
 
   function pageChapterHeadMarkup(book, chapter) {
     return `<div class="reader-page-chapter-head">
-      <div class="reader-chapter-kicker">CHAPTER ${String(state.chapterIndex + 1).padStart(2, "0")} / ${String(state.chapters.length).padStart(2, "0")}</div>
+      <div class="reader-chapter-kicker">第 ${String(state.chapterIndex + 1).padStart(2, "0")} 章 / 共 ${String(state.chapters.length).padStart(2, "0")} 章</div>
       <h1 class="reader-chapter-title">${escapeHTML(chapter.title)}</h1>
       <div class="reader-chapter-info">
         <span>${escapeHTML(book.author || "佚名")}</span><i></i>
@@ -1872,7 +1872,7 @@
     const percent = overallPercent();
     const chapterCount = state.chapters.length;
     const chapterHead = `<div class="reader-chapter-head">
-      <div class="reader-chapter-kicker">CHAPTER ${String(state.chapterIndex + 1).padStart(2, "0")} / ${String(chapterCount).padStart(2, "0")}</div>
+      <div class="reader-chapter-kicker">第 ${String(state.chapterIndex + 1).padStart(2, "0")} 章 / 共 ${String(chapterCount).padStart(2, "0")} 章</div>
       <h1 class="reader-chapter-title">${escapeHTML(chapter.title)}</h1>
       <div class="reader-chapter-info">
         <span>${escapeHTML(book.author || "佚名")}</span><i></i>

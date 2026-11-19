@@ -13,6 +13,7 @@
   <meta name="apple-mobile-web-app-title" content="拾页">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="reader.css">
+  <link rel="stylesheet" href="refine.css">
 </head>
 <body>
   <div class="app-shell">
@@ -27,7 +28,7 @@
         </span>
         <span class="brand-copy">
           <strong>拾页</strong>
-          <small>SHIYE · READING</small>
+          <small>阅读档案</small>
         </span>
       </button>
 
@@ -89,7 +90,7 @@
               <path d="M19.5 6.2c-2.7-.9-5.2-.4-7.5 1.3v11c2.3-1.7 4.8-2.2 7.5-1.3V6.2Z"/>
             </svg>
           </span>
-          <span class="brand-copy"><strong>拾页</strong><small>SHIYE</small></span>
+          <span class="brand-copy"><strong>拾页</strong><small>阅读档案</small></span>
         </button>
         <button class="mobile-add" type="button" data-action="add-book" aria-label="添加书籍">
           <span data-icon="plus" aria-hidden="true"></span>
@@ -100,11 +101,11 @@
         <section class="view is-active" data-view-panel="overview" aria-labelledby="overview-title">
           <header class="page-header page-header--overview">
             <div class="page-title-block">
-              <p class="eyebrow" id="today-label">READING DAY</p>
+              <p class="eyebrow" id="today-label">阅读记录</p>
               <h1 class="page-title" id="overview-title">
-                <span id="greeting-text">下午好，读者</span><span class="title-dot" aria-hidden="true"></span>
+                <span id="period-title">阅读档案</span>
               </h1>
-              <p class="page-lede">每翻一页，都是与另一个世界的一次照面。</p>
+              <p class="page-lede" id="overview-lede">每翻一页，都是与另一个世界的一次照面。</p>
             </div>
             <div class="page-actions">
               <button class="icon-button page-search-button" type="button" data-action="search-shelf" aria-label="搜索书架">
@@ -141,8 +142,7 @@
         <section class="view" data-view-panel="shelf" aria-labelledby="shelf-title">
           <header class="page-header">
             <div class="page-title-block">
-              <p class="eyebrow">YOUR LIBRARY</p>
-              <h1 class="page-title" id="shelf-title">我的书架<span class="title-dot" aria-hidden="true"></span></h1>
+              <h1 class="page-title" id="shelf-title">我的书架</h1>
               <p class="page-lede" id="shelf-subtitle">正在整理你的书。</p>
             </div>
             <div class="page-actions">
@@ -196,8 +196,7 @@
         <section class="view" data-view-panel="categories" aria-labelledby="categories-title">
           <header class="page-header">
             <div class="page-title-block">
-              <p class="eyebrow">READING MAP</p>
-              <h1 class="page-title" id="categories-title">分类书架<span class="title-dot" aria-hidden="true"></span></h1>
+              <h1 class="page-title" id="categories-title">分类书架</h1>
               <p class="page-lede">读过的书，慢慢拼成你看世界的地图。</p>
             </div>
             <div class="page-actions">
@@ -222,8 +221,7 @@
         <section class="view" data-view-panel="translate" aria-labelledby="translate-title">
           <header class="page-header">
             <div class="page-title-block">
-              <p class="eyebrow">BILINGUAL READING</p>
-              <h1 class="page-title" id="translate-title">译读<span class="title-dot" aria-hidden="true"></span></h1>
+              <h1 class="page-title" id="translate-title">译读</h1>
               <p class="page-lede">面对还没有中文版的书，也能保留原文，一段一段读下去。</p>
             </div>
           </header>
@@ -242,8 +240,7 @@
         <section class="view" data-view-panel="achievements" aria-labelledby="achievements-title">
           <header class="page-header">
             <div class="page-title-block">
-              <p class="eyebrow">MILESTONES</p>
-              <h1 class="page-title" id="achievements-title">阅读成就<span class="title-dot" aria-hidden="true"></span></h1>
+              <h1 class="page-title" id="achievements-title">阅读成就</h1>
               <p class="page-lede">不是为了炫耀，只是让每一次坚持都有回声。</p>
             </div>
           </header>

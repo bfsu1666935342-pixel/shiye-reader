@@ -24,6 +24,14 @@ http://127.0.0.1:4173
 
 需要 Node.js。桌面快捷方式启动的本地服务会安静地留在后台；关闭电脑或注销后会自动结束。
 
+## 界面
+
+界面按「纸面、铅字、书脊」这一条线索做过一次整理：米色纸做底，只留一种苔绿色作强调；标题用宋体，数字和正文用无衬线；年度目标画成一年 24 本书的书脊刻度，阅读足迹是一条 20 周的墨色登记表。所有整理都写在 `refine.css` 里，在 `styles.css` 之后加载，功能与布局不动。
+
+![拾页概览](preview-overview.png)
+
+这次整理沿用了 Damir Sokolovsky 的 [unslop](https://github.com/heydamir/unslop) 方法（CC BY 4.0）：先审计界面里的模板感，再按间距、颜色、图标、文案、字体、布局、细节、视觉和动效逐层修改。
+
 ## 怎么读一本书
 
 1. 打开「我的书架」，点击 **导入电子书**，选择 `.epub`、`.txt` 或 `.md` 文件。
@@ -109,6 +117,7 @@ http://127.0.0.1:4173
 shiye-reader/
 ├─ index.html              页面骨架
 ├─ styles.css              主界面样式
+├─ refine.css              界面整理层：纸面、字号、书脊刻度
 ├─ reader.css              WPS 式阅读器、翻页与对照样式
 ├─ app.js                  阅读档案、书架、成就、译读工作台
 ├─ reader.js               EPUB/TXT 导入、分页阅读、搜索、对照与查词
@@ -126,6 +135,7 @@ shiye-reader/
 ├─ favicon.svg             站点图标
 ├─ preview-reader.png      翻页阅读预览图
 ├─ preview-reader-bilingual.png 对照阅读预览图
+├─ preview-overview.png    书架概览预览图
 └─ README.md
 ```
 

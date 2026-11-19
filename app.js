@@ -239,14 +239,6 @@
     });
   }
 
-  function greetingForHour(hour) {
-    if (hour < 5) return "夜深了";
-    if (hour < 11) return "早上好";
-    if (hour < 13) return "中午好";
-    if (hour < 18) return "下午好";
-    return "晚上好";
-  }
-
   function formatFullDate(key) {
     const day = parseDay(key);
     if (!day) return "日期未知";
@@ -326,11 +318,11 @@
     return `<div class="book-cover theme-${theme}" role="img" aria-label="《${escapeHTML(title)}》封面">
       <span class="cover-spine" aria-hidden="true"></span>
       <div class="cover-content">
-        <div class="cover-kicker"><span>${escapeHTML(categoryName)}</span><span>SHIYE</span></div>
+        <div class="cover-kicker"><span>${escapeHTML(categoryName)}</span></div>
         <div class="cover-title ${titleClass}">${escapeHTML(title)}</div>
         <span class="cover-mini-mark" aria-hidden="true">${escapeHTML(Array.from(title)[0] || "书")}</span>
         <div class="cover-motif" aria-hidden="true">${MOTIFS[theme] || MOTIFS.forest}</div>
-        <div class="cover-footer"><span>${escapeHTML(author)}</span><span>READ</span></div>
+        <div class="cover-footer"><span>${escapeHTML(author)}</span></div>
       </div>
     </div>`;
   }
@@ -1026,15 +1018,22 @@
 
   function renderHeader() {
     const now = new Date();
-    const greeting = greetingForHour(now.getHours());
     const name = state.profile.name || "读者";
     const dateLabel = `${now.getMonth() + 1}月${now.getDate()}日 · 星期${WEEKDAY_SHORT[now.getDay()]}`;
 
     const todayLabel = document.getElementById("today-label");
-    if (todayLabel) todayLabel.textContent = dateLabel;
+    if (todayLabel) todayLabel.textContent = `${now.getFullYear()} 年 ${dateLabel}`;
 
-    const greetingText = document.getElementById("greeting-text");
-    if (greetingText) greetingText.textContent = `${greeting}，${name}`;
+    const periodTitle = document.getElementById("period-title");
+    if (periodTitle) periodTitle.textContent = MONTH_NAMES[now.getMonth()];
+
+    const overviewLede = document.getElementById("overview-lede");
+    if (overviewLede) {
+      const readCount = getReadThisYear().length;
+      overviewLede.textContent = readCount
+        ? `今年读完 ${formatNumber(readCount)} 本，翻过 ${formatNumber(getTotalPagesRead())} 页。`
+        : "书架还空着，导入一本，阅读档案就开始生长。";
+    }
 
     const profileName = document.getElementById("profile-name");
     if (profileName) profileName.textContent = name;
@@ -1068,52 +1067,29 @@
     const card = document.getElementById("goal-card");
     if (!card) return;
     const { count, goal, percent, visualPercent, pages } = goalCopy();
-    const radius = 86;
-    const circumference = 2 * Math.PI * radius;
-    const offset = circumference * (1 - visualPercent / 100);
     const completed = count >= goal;
     const copy = completed
       ? "年度目标已达成，继续读下去。"
-      : `再读 ${goal - count} 本，完成今年的阅读约定。`;
+      : `再读 ${formatNumber(goal - count)} 本，完成今年的阅读约定。`;
+    const shelf = goal <= 48
+      ? `<div class="goal-shelf" style="--goal:${goal}" aria-hidden="true">${Array.from({ length: goal }, (_, index) => `<span class="${index < count ? "is-read" : ""}"></span>`).join("")}</div>`
+      : `<div class="goal-track" aria-hidden="true"><span style="width:${visualPercent}%"></span></div>`;
 
     card.innerHTML = `
-      <div class="goal-copy">
-        <div class="goal-header">
-          <span class="eyebrow">${YEAR} · READING GOAL</span>
-          <button class="goal-adjust" type="button" data-action="edit-goal">
-            ${icon("sliders")} 调整目标
-          </button>
-        </div>
-        <div class="goal-main-copy">
-          <p class="goal-kicker">今年，已读完</p>
-          <div class="goal-count"><strong>${formatNumber(count)}</strong><span>本</span></div>
-          <p class="goal-sub">在 ${formatNumber(pages)} 页里，和 ${formatNumber(count)} 本书相遇。</p>
-        </div>
-        <div class="goal-progress">
-          <div class="goal-progress-labels"><span>年度目标 ${formatNumber(goal)} 本</span><span>${percent}%</span></div>
-          <div class="goal-track"><span style="width: ${visualPercent}%"></span></div>
-          <p class="goal-hint">${copy}</p>
-        </div>
+      <div class="goal-header">
+        <span class="goal-kicker">年度阅读目标 · ${YEAR}</span>
+        <button class="goal-adjust" type="button" data-action="edit-goal">
+          ${icon("sliders")} 调整目标
+        </button>
       </div>
-      <div class="goal-visual" aria-hidden="true">
-        <div class="goal-ring">
-          <svg class="ring-svg" viewBox="0 0 200 200">
-            <defs>
-              <linearGradient id="goalRingGradient" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#b7cba9"/>
-                <stop offset="100%" stop-color="#d6c39b"/>
-              </linearGradient>
-            </defs>
-            <circle class="ring-track" cx="100" cy="100" r="${radius}"/>
-            <circle class="ring-fill" cx="100" cy="100" r="${radius}" stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}"/>
-          </svg>
-          <div class="ring-center">
-            <strong>${visualPercent >= 100 ? "100" : Math.round(visualPercent)}</strong>
-            <span>PERCENT</span>
-            <small>${completed ? "已达成" : "进行中"}</small>
-          </div>
-        </div>
-        <span class="goal-ring-caption">KEEP READING</span>
+      <div class="goal-main-copy">
+        <div class="goal-count"><strong>${formatNumber(count)}</strong><span>/ ${formatNumber(goal)} 本</span></div>
+        <p class="goal-sub">在 ${formatNumber(pages)} 页里，和 ${formatNumber(count)} 本书相遇。</p>
+      </div>
+      ${shelf}
+      <div class="goal-footer">
+        <span>${copy}</span>
+        <span class="goal-percent">${percent}%</span>
       </div>`;
   }
 
@@ -1131,7 +1107,7 @@
     card.innerHTML = `
       <div class="card-top">
         <span class="eyebrow">连续阅读</span>
-        <span class="soft-pill">最长 ${longest} 天</span>
+        <span class="card-meta">最长 ${longest} 天</span>
       </div>
       <div class="streak-main">
         <strong class="streak-number">${current}</strong><span class="streak-unit">天</span>
@@ -1190,7 +1166,7 @@
 
     panel.innerHTML = stats.map((stat) => `
       <div class="stat">
-        <div class="stat-top">${icon(stat.icon)}${stat.label}</div>
+        <div class="stat-top">${stat.label}</div>
         <div class="stat-value">${stat.value}<small>${stat.unit}</small></div>
         <p class="stat-note">${stat.note}</p>
       </div>`).join("");
@@ -1268,6 +1244,11 @@
     }
 
     const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+    const monthStarts = Array.from({ length: 20 }, (_, week) => addDays(start, week * 7));
+    const monthLabels = monthStarts.map((date, index) => {
+      const previous = index ? monthStarts[index - 1] : null;
+      return previous && previous.getMonth() === date.getMonth() ? "" : `${date.getMonth() + 1}月`;
+    });
     const weekMinutes = getWeekMinutes();
     const previousWeekMinutes = getPreviousWeekMinutes();
     const delta = weekMinutes - previousWeekMinutes;
@@ -1286,11 +1267,12 @@
           <h2>阅读足迹</h2>
           <p>过去 20 周的翻页记录</p>
         </div>
-        <span class="soft-pill">本月 ${getMonthActiveDays()} 天</span>
+        <span class="card-meta">本月 ${getMonthActiveDays()} 天</span>
       </div>
       <div class="heatmap-body">
         <div class="heatmap-weekdays" aria-hidden="true">${weekdays.map((day) => `<span>${day}</span>`).join("")}</div>
         <div class="heatmap-scroll">
+          <div class="heatmap-months" aria-hidden="true">${monthLabels.map((label) => `<span>${label}</span>`).join("")}</div>
           <div class="heatmap-grid" role="img" aria-label="最近 20 周的阅读热力图">
             ${cells.map((cell) => `<span class="heat-cell level-${cell.level}${cell.future ? " is-future" : ""}" title="${cell.label}" aria-label="${cell.label}"></span>`).join("")}
           </div>
@@ -1563,8 +1545,7 @@
         </div>
       </div>
       <div class="distribution-detail">
-        <p class="eyebrow">YOUR READING MAP</p>
-        <h2>阅读的宽度，<br>也是世界的宽度。</h2>
+        <h2>藏书分布</h2>
         <p>${description}</p>
         <div class="distribution-legend">
           ${stats.map((category) => `<div class="legend-row" style="--cat-color:${category.color}">
@@ -1646,34 +1627,29 @@
 
     target.innerHTML = `<section class="level-card">
       <div class="level-copy">
-        <p class="eyebrow">READING RANK · ALL TIME</p>
+        <p class="eyebrow">累计阅读段位</p>
         <div class="level-name-row">
           <span class="level-name">${rank.name}</span>
-          <span class="level-number">RANK ${String(rank.number).padStart(2, "0")} / ${READING_RANKS.length}</span>
+          <span class="level-number">第 ${String(rank.number).padStart(2, "0")} 段 / 共 ${READING_RANKS.length} 段</span>
         </div>
         <p class="level-desc">${description}</p>
         <div class="level-progress">
           <div class="level-progress-row"><span>${rank.next ? `距离「${rank.next.name}」` : "累计阅读"}</span><strong>${progressText}</strong></div>
           <div class="level-track"><span style="width:${progressWidth}%"></span></div>
         </div>
-        <div class="level-stats">
-          <span><strong>${readCount}</strong> 本已读</span>
-          <span><strong>${formatNumber(pages)}</strong> 页</span>
-          <span><strong>${longest}</strong> 天最长连续</span>
-          <span><strong>${formatReadingDuration(rank.totalMinutes)}</strong> 累计</span>
-        </div>
       </div>
-      <div class="level-medal-wrap" aria-hidden="true">
-        <div class="level-medal">
-          ${icon("trophy")}
-          <span class="level-medal-caption">SHIYE · RANK</span>
+      <div class="level-aside">
+        <div class="level-stats">
+          <span><em>已读</em><strong>${readCount} 本</strong></span>
+          <span><em>翻过</em><strong>${formatNumber(pages)} 页</strong></span>
+          <span><em>最长连续</em><strong>${longest} 天</strong></span>
+          <span><em>累计时长</em><strong>${formatReadingDuration(rank.totalMinutes)}</strong></span>
         </div>
       </div>
     </section>
     <section class="rank-journey" aria-label="累计阅读段位长阶">
       <div class="rank-journey-head">
         <div>
-          <p class="eyebrow">ALL-TIME MILESTONES</p>
           <h2>阅读长阶</h2>
         </div>
         <p>时长只增不减，读过的每一小时都算数。${baselineNote}</p>
@@ -2729,11 +2705,11 @@
 
   /* ---------- Modal markup ---------- */
 
-  function dialogShell({ title, kicker = "SHIYE · READING ARCHIVE", description = "", body, className = "" }) {
+  function dialogShell({ title, kicker = "", description = "", body, className = "" }) {
     return `<div class="dialog ${className}" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
       <div class="dialog-head">
         <div>
-          <p class="dialog-kicker">${escapeHTML(kicker)}</p>
+          ${kicker ? `<p class="dialog-kicker">${escapeHTML(kicker)}</p>` : ""}
           <h2 class="dialog-title" id="dialog-title">${escapeHTML(title)}</h2>
           ${description ? `<p class="dialog-description">${escapeHTML(description)}</p>` : ""}
         </div>
@@ -2769,7 +2745,7 @@
       </div>
     </form>`;
     openOverlay({
-      markup: dialogShell({ title: "调整年度目标", kicker: "READING GOAL", className: "dialog--small", body }),
+      markup: dialogShell({ title: "调整年度目标", className: "dialog--small", body }),
       focusSelector: "#goal-input",
     });
   }
@@ -2797,7 +2773,7 @@
       </div>
     </form>`;
     openOverlay({
-      markup: dialogShell({ title: "新建分类", kicker: "NEW SHELF", description: "给阅读留一个新的抽屉。", className: "dialog--category", body }),
+      markup: dialogShell({ title: "新建分类", description: "给阅读留一个新的抽屉。", className: "dialog--category", body }),
       focusSelector: "#category-name",
     });
   }
@@ -2878,7 +2854,7 @@
     </form>`;
 
     openOverlay({
-      markup: dialogShell({ title, kicker: editing ? "EDIT BOOK" : "NEW BOOK", description, body }),
+      markup: dialogShell({ title, description, body }),
       focusSelector: "#book-title",
     });
     updateCoverPreview();
@@ -2941,7 +2917,6 @@
 
     const markup = `<div class="drawer" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
       <div class="drawer-head">
-        <span class="drawer-kicker">BOOK DETAIL · 拾页</span>
         <button class="dialog-close" type="button" data-close aria-label="关闭">${icon("close")}</button>
       </div>
       <div class="drawer-hero">
@@ -3012,7 +2987,7 @@
       </div>
     </form>`;
     openOverlay({
-      markup: dialogShell({ title: "设置", kicker: "PREFERENCES", description: "把这里，调成更像你的样子。", className: "dialog--small", body }),
+      markup: dialogShell({ title: "设置", description: "把这里，调成更像你的样子。", className: "dialog--small", body }),
       focusSelector: "#settings-name",
     });
   }
